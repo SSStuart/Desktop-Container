@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace Desktop_Container
@@ -35,15 +32,12 @@ namespace Desktop_Container
 
                 MainWindow newContainer = new MainWindow(items, timestampText);
                 newContainer.Show();
-
-
-                //System.IO.File.Move(container, container + ".active");
             }
         }
 
         void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
-            var main = App.Current.MainWindow as MainWindow; // If not a static method, this.MainWindow would work
+            var main = App.Current.MainWindow as MainWindow;
             main.Save_Container();
         }
 
