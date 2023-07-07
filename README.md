@@ -5,3 +5,7 @@
 ![icone](images/icone.png)
 
 ![icone](images/screenshot.png)
+
+## Know issues ⚠️
+- Folder custom icons are not supported
+- Unable to scroll if items are overflowing
