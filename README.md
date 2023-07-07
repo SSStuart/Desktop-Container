@@ -7,6 +7,7 @@
 ![icone](images/screenshot.png)
 
 ## Know issues ⚠️
+- The Containers don't always stay on the desktop
 
-- [x] ~~Custom folder icons are not supported~~
-- [x] ~~Unable to scroll if items are overflowing~~
+- ✔️ ~~Custom folder icons are not supported~~
+- ✔️ ~~Unable to scroll if items are overflowing~~
