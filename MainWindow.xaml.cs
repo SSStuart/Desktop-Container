@@ -8,8 +8,10 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Xml;
 
 namespace Desktop_Container
 {
@@ -24,7 +26,7 @@ namespace Desktop_Container
         bool pinned = false;
 
         double CONTAINER_HEIGHT = 400;
-        public MainWindow(List<string> items = null, string timestampText = "")
+        public MainWindow(List<List<string>> save_datas = null, string timestampText = "")
         {
             InitializeComponent();
 
@@ -32,20 +34,20 @@ namespace Desktop_Container
             if (!Directory.Exists(saveDirectory))
                 Directory.CreateDirectory(saveDirectory);
 
-            if (items != null) // CONTAINER SAUVEGARDE
+            if (save_datas != null) // CONTAINER SAUVEGARDE
             {
                 timestamp = int.Parse(timestampText);
+                var options = save_datas[0];
+
                 // Récupération du nom du container
-                Container_Title.Text = items[0];
-                MainContainer.Title = items[0];
-                items.RemoveAt(0);
+                Container_Title.Text = options[0];
+                MainContainer.Title = options[0];
 
                 // Récupération de l'état (réduit/ouvert) du container
-                containerReduced = items[0] == "True";
-                items.RemoveAt(0);
+                containerReduced = options[1] == "True";
 
                 // Récupération des dimensions du container
-                List<string> sizeContainer = items[0].Split(";").ToList();
+                List<string> sizeContainer = options[2].Split(";").ToList();
                 MainContainer.Width = int.Parse(sizeContainer[0]);
                 int savedContainerHeight = int.Parse(sizeContainer[1]);
                 if (savedContainerHeight > 50)
@@ -54,24 +56,24 @@ namespace Desktop_Container
                     CONTAINER_HEIGHT = 400;
                 MainContainer.Height = CONTAINER_HEIGHT;
 
-                items.RemoveAt(0);
-
                 // Récupération des coordonnées du container
-                List<string> posContainer = items[0].Split(";").ToList();
+                List<string> posContainer = options[3].Split(";").ToList();
                 MainContainer.Left = int.Parse(posContainer[0]);
                 MainContainer.Top = int.Parse(posContainer[1]);
-                items.RemoveAt(0);
 
-                AddItem(items.ToArray());
+                AddItem(save_datas[1].ToArray());
 
                 if (containerReduced)
-                    ContainerReduce(true);
-            } else // NOUVEAU CONTAINER
-            {
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            }
+                {
+                    Wrap_Shortcut.Visibility = Visibility.Collapsed;
+                    MainContainer.Height = 20;
+                    MainContainer.ResizeMode = ResizeMode.NoResize;
+                }
 
+            } else // NOUVEAU CONTAINER
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         }
+
 
         private void AddItem(string[] files)
         {
@@ -80,8 +82,10 @@ namespace Desktop_Container
                 if (File.Exists(file) || Directory.Exists(file))
                 {
                     string filename;
-                    if (File.Exists(file))
+                    if (File.Exists(file) && Path.GetFileNameWithoutExtension(file) != "")
                         filename = Path.GetFileNameWithoutExtension(file);
+                    else if (File.Exists(file))
+                        filename = Path.GetFileName(file);
                     else
                         filename = Path.GetFileName(file);
 
@@ -204,21 +208,13 @@ namespace Desktop_Container
             }
         }
 
-        private void MainContainer_MouseDown(object sender, MouseButtonEventArgs e)
+        public static void OpenWithDefaultProgram(string path)
         {
-            if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2)
-                this.DragMove();
-        }
+            using Process fileopener = new Process();
 
-        private void Btn_NewContainer_Click(object sender, RoutedEventArgs e)
-        {
-            MainWindow newContainer = new MainWindow(null, "");
-            newContainer.Show();
-        }
-
-        private void Btn_CloseContainer_Click(object sender, RoutedEventArgs e)
-        {
-            MainContainer.Close();
+            fileopener.StartInfo.FileName = "explorer";
+            fileopener.StartInfo.Arguments = "\"" + path + "\"";
+            fileopener.Start();
         }
 
         private void MainContainer_Drop(object sender, DragEventArgs e)
@@ -232,20 +228,48 @@ namespace Desktop_Container
             Save_Container();
         }
 
-        public static void OpenWithDefaultProgram(string path)
+        public void Save_Container()
         {
-            using Process fileopener = new Process();
+            if (Wrap_Shortcut.Children.Count > 0)
+            {
+                List<List<string>> save_datas = new List<List<string>>();
+                List<string> options = new List<string>();
+                List<string> items = new List<string>();
 
-            fileopener.StartInfo.FileName = "explorer";
-            fileopener.StartInfo.Arguments = "\"" + path + "\"";
-            fileopener.Start();
+                options.Add(Container_Title.Text);
+                options.Add(containerReduced.ToString());
+
+                if (!containerReduced)
+                    CONTAINER_HEIGHT = MainContainer.Height;
+
+                int[] sizeContainer = { (int)MainContainer.Width, (int)CONTAINER_HEIGHT };
+                options.Add(sizeContainer[0].ToString() + ";" + sizeContainer[1].ToString());
+
+                string posContainer = MainContainer.PointToScreen(new Point(0, 0)).ToString();
+                options.Add(posContainer);
+
+                var elems = Wrap_Shortcut.Children;
+                foreach (var item in elems)
+                {
+                    Grid grid = item as Grid;
+                    items.Add(grid.Tag.ToString());
+                }
+
+                save_datas.Add(options);
+                save_datas.Add(items);
+
+                var json = JsonSerializer.Serialize(save_datas);
+
+                File.WriteAllText(saveDirectory + @"\container" + timestamp + ".json", json);
+            }
+            else
+                File.Delete(saveDirectory + @"\container" + timestamp + ".json");
         }
 
         private void Item_Delete(Grid item)
         {
             Wrap_Shortcut.Children.Remove(item);
         }
-
         private void Item_MoveUp(Grid item)
         {
             int index = Wrap_Shortcut.Children.IndexOf(item);
@@ -255,7 +279,6 @@ namespace Desktop_Container
                 Wrap_Shortcut.Children.Insert(index - 1, item);
             }
         }
-
         private void Item_MoveDown(Grid item)
         {
             int index = Wrap_Shortcut.Children.IndexOf(item);
@@ -264,6 +287,56 @@ namespace Desktop_Container
                 Wrap_Shortcut.Children.Remove(item);
                 Wrap_Shortcut.Children.Insert(index + 1, item);
             }
+        }
+
+        bool optionsOpened = false;
+        private void Btn_ContainerOptions_Click(object sender, RoutedEventArgs e)
+        {
+            if (optionsOpened)
+            {
+                Btn_Restart.Visibility = Visibility.Collapsed;
+                Btn_Pin.Visibility = Visibility.Collapsed;
+                Btn_NewContainer.Visibility = Visibility.Collapsed;
+                Btn_CloseContainer.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                Btn_Restart.Visibility = Visibility.Visible;
+                Btn_Pin.Visibility = Visibility.Visible;
+                Btn_NewContainer.Visibility = Visibility.Visible;
+                Btn_CloseContainer.Visibility = Visibility.Visible;
+            }
+            optionsOpened = !optionsOpened;
+        }
+
+        private void Btn_Restart_Click(object sender, RoutedEventArgs e)
+        {
+            Save_Container();
+            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
+            Application.Current.Shutdown();
+        }
+
+        private void Btn_Pin_Click(object sender, RoutedEventArgs e)
+        {
+            MainContainer.Topmost = !MainContainer.Topmost;
+            pinned = MainContainer.Topmost;
+        }
+
+        private void Btn_NewContainer_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow newContainer = new MainWindow(null, "");
+            newContainer.Show();
+        }
+
+        private void Btn_CloseContainer_Click(object sender, RoutedEventArgs e)
+        {
+            MainContainer.Close();
+        }
+
+        private void MainContainer_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2)
+                this.DragMove();
         }
 
         private void MainContainer_MouseEnter(object sender, MouseEventArgs e)
@@ -284,42 +357,6 @@ namespace Desktop_Container
                 Btn_Pin.Visibility = Visibility.Collapsed;
         }
 
-        private void Hover_Item(Grid item, bool hovering)
-        {
-            if(hovering)
-                item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
-            else
-                item.Background = new SolidColorBrush(Color.FromArgb(0x00, 0, 0, 0));
-        }
-
-        public void Save_Container()
-        {
-            List<string> datas = new List<string>();
-
-            datas.Add(Container_Title.Text);
-            datas.Add(containerReduced.ToString());
-
-            if (!containerReduced)
-                CONTAINER_HEIGHT = MainContainer.Height;
-
-            int[] sizeContainer = { (int)MainContainer.Width, (int)CONTAINER_HEIGHT };
-            datas.Add(sizeContainer[0].ToString() + ";" + sizeContainer[1].ToString());
-
-            string posContainer = MainContainer.PointToScreen(new Point(0, 0)).ToString();
-            datas.Add(posContainer);
-
-            var elems = Wrap_Shortcut.Children;
-            foreach (var item in elems)
-            {
-                Grid grid = item as Grid;
-                datas.Add(grid.Tag.ToString());
-            }
-
-            var json = JsonSerializer.Serialize(datas);
-            
-            File.WriteAllText(saveDirectory+@"\container"+timestamp+".json", json);
-        }
-
         private void MainContainer_MouseUp(object sender, MouseButtonEventArgs e)
         {
             Save_Container();
@@ -333,71 +370,35 @@ namespace Desktop_Container
             }
         }
 
-        private void ContainerReduce(bool initialisation = false)
+        private void ContainerReduce()
         {
-            if (initialisation) {
+            if (containerReduced)
+            {
+                Wrap_Shortcut.Visibility = Visibility.Visible;
+                MainContainer.Height = CONTAINER_HEIGHT;
+                MainContainer.ResizeMode = ResizeMode.CanResizeWithGrip;
+                containerReduced = false;
+            }
+            else
+            {
                 Wrap_Shortcut.Visibility = Visibility.Collapsed;
                 MainContainer.Height = 20;
                 MainContainer.ResizeMode = ResizeMode.NoResize;
-            } else
-            {
-                if (containerReduced)
-                {
-                    Wrap_Shortcut.Visibility = Visibility.Visible;
-                    MainContainer.Height = CONTAINER_HEIGHT;
-                    MainContainer.ResizeMode = ResizeMode.CanResizeWithGrip;
-                    containerReduced = false;
-                }
-                else
-                {
-                    Wrap_Shortcut.Visibility = Visibility.Collapsed;
-                    MainContainer.Height = 20;
-                    MainContainer.ResizeMode = ResizeMode.NoResize;
-                    containerReduced = true;
-                }
+                containerReduced = true;
             }
         }
 
-        bool optionsOpened = false;
-        private void Btn_ContainerOptions_Click(object sender, RoutedEventArgs e)
+        private void Hover_Item(Grid item, bool hovering)
         {
-            if (optionsOpened)
-            {
-                Btn_Restart.Visibility = Visibility.Collapsed;
-                Btn_Pin.Visibility = Visibility.Collapsed;
-                Btn_NewContainer.Visibility = Visibility.Collapsed;
-                Btn_CloseContainer.Visibility = Visibility.Collapsed;
-            } else
-            {
-                Btn_Restart.Visibility = Visibility.Visible;
-                Btn_Pin.Visibility = Visibility.Visible;
-                Btn_NewContainer.Visibility = Visibility.Visible;
-                Btn_CloseContainer.Visibility = Visibility.Visible;
-            }
-            optionsOpened = !optionsOpened;
-        }
-
-        private void Btn_Restart_Click(object sender, RoutedEventArgs e)
-        {
-            Save_Container();
-            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
-            Application.Current.Shutdown();
+            if(hovering)
+                item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
+            else
+                item.Background = new SolidColorBrush(Color.FromArgb(0x00, 0, 0, 0));
         }
 
         private void MainContainer_Closing(object sender, CancelEventArgs e)
         {
             Save_Container();
-            if (File.Exists(saveDirectory + @"\container" + timestamp + ".json"))
-            {
-                if (Wrap_Shortcut.Children.Count == 0)
-                    File.Delete(saveDirectory + @"\container" + timestamp + ".json");
-            }
-        }
-
-        private void Btn_Pin_Click(object sender, RoutedEventArgs e)
-        {
-            MainContainer.Topmost = !MainContainer.Topmost;
-            pinned = MainContainer.Topmost;
         }
     }
 }

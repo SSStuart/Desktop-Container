@@ -25,13 +25,16 @@ namespace Desktop_Container
             {
                 StreamReader r = new StreamReader(container);
                 string json = r.ReadToEnd();
-                List<string> items = JsonSerializer.Deserialize<List<string>>(json);
-                r.Close();
+                if(json != "")
+                {
+                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json);
+                    r.Close();
 
-                string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
+                    string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
 
-                MainWindow newContainer = new MainWindow(items, timestampText);
-                newContainer.Show();
+                    MainWindow newContainer = new MainWindow(save_datas, timestampText);
+                    newContainer.Show();
+                }
             }
         }
 
@@ -39,12 +42,6 @@ namespace Desktop_Container
         {
             var main = App.Current.MainWindow as MainWindow;
             main.Save_Container();
-        }
-
-        void App_Restart()
-        {
-            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
-            Application.Current.Shutdown();
         }
     }
 }
