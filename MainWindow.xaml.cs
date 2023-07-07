@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,10 +17,38 @@ namespace Desktop_Container
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    /// 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SHFILEINFO
+    {
+        public IntPtr hIcon;
+        public IntPtr iIcon;
+        public uint dwAttributes;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szDisplayName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+        public string szTypeName;
+    };
+
+    class Win32
+    {
+        public const uint SHGFI_ICON = 0x100;
+        public const uint SHGFI_LARGEICON = 0x0;    // 'Large icon
+        public const uint SHGFI_SMALLICON = 0x1;    // 'Small icon
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        public static extern IntPtr SHGetFileInfo(string pszPath,
+                                    uint dwFileAttributes,
+                                    ref SHFILEINFO psfi,
+                                    uint cbSizeFileInfo,
+                                    uint uFlags);
+    }
+
+
     public partial class MainWindow : Window
     {
         long timestamp = 0;
-        string saveDirectory;
+        readonly string saveDirectory;
         bool containerReduced = false;
         bool pinned = false;
 
@@ -87,7 +116,7 @@ namespace Desktop_Container
                     else
                         filename = Path.GetFileName(file);
 
-                    Grid item = new Grid
+                    Grid item = new()
                     {
                         Height = 100,
                         Width = 100,
@@ -98,47 +127,42 @@ namespace Desktop_Container
                     };
                     Wrap_Shortcut.Children.Add(item);
 
-                    RowDefinition row1 = new RowDefinition
+                    RowDefinition row1 = new()
                     {
                         Height = new GridLength(50)
                     };
                     item.RowDefinitions.Add(row1);
-                    RowDefinition row2 = new RowDefinition
+                    RowDefinition row2 = new()
                     {
                         Height = new GridLength(1, GridUnitType.Auto)
                     };
                     item.RowDefinitions.Add(row2);
 
-                    System.Windows.Controls.Image icone = new System.Windows.Controls.Image
+                    Image icone = new()
                     {
                         Stretch = Stretch.Uniform,
                     };
 
                     FileAttributes attr = File.GetAttributes(file);
 
-                    //detect whether its a directory or file
-                    if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
-                    {
-                        icone.Source = new BitmapImage(new Uri("/Desktop Container;component/images/directory.png", UriKind.Relative));
-                    }
-                    else
-                    {
-                        // RECUPERATION DE L'ICONE DU FICHIER
-                        BitmapSource fileIcon;
-                        using (System.Drawing.Icon sysicon = System.Drawing.Icon.ExtractAssociatedIcon(file))
-                        {
-                            // This new call in WPF finally allows us to read/display 32bit Windows file icons!
-                            fileIcon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
-                                sysicon.Handle,
-                                System.Windows.Int32Rect.Empty,
-                                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-                        }
-                        icone.Source = fileIcon;
-                    }
+                    // Récupération de l'icône du dossier / fichier
+                    IntPtr hImgSmall;    //the handle to the system image list
+                    IntPtr hImgLarge;    //the handle to the system image list
+                    string fName;        // 'the file name to get icon from
+                    SHFILEINFO shinfo = new();
+
+                    hImgSmall = Win32.SHGetFileInfo(file, 0, ref shinfo,
+                            (uint)Marshal.SizeOf(shinfo),
+                            Win32.SHGFI_ICON |
+                            Win32.SHGFI_ICON);
+                    var item_icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(shinfo.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+
+                    icone.Source = item_icon;
+
 
                     item.Children.Add(icone);
 
-                    TextBlock name = new TextBlock
+                    TextBlock name = new()
                     {
                         Text = filename,
                         Foreground = new SolidColorBrush(Colors.White),
@@ -153,8 +177,8 @@ namespace Desktop_Container
                         OpenWithDefaultProgram(item.Tag.ToString());
                     };
 
-                    ContextMenu itemOptions = new ContextMenu();
-                    MenuItem itemDelete = new MenuItem
+                    ContextMenu itemOptions = new();
+                    MenuItem itemDelete = new()
                     {
                         Header = "_Supprimer",
                     };
@@ -163,7 +187,7 @@ namespace Desktop_Container
                         Item_Delete(item);
                     };
                     itemOptions.Items.Add(itemDelete);
-                    MenuItem itemMoveUp = new MenuItem
+                    MenuItem itemMoveUp = new()
                     {
                         Header = "_<- Avancer",
                     };
@@ -172,7 +196,7 @@ namespace Desktop_Container
                         Item_MoveUp(item);
                     };
                     itemOptions.Items.Add(itemMoveUp);
-                    MenuItem itemMoveDown = new MenuItem
+                    MenuItem itemMoveDown = new()
                     {
                         Header = "-_> Reculer",
                     };
@@ -208,7 +232,7 @@ namespace Desktop_Container
 
         public static void OpenWithDefaultProgram(string path)
         {
-            using Process fileopener = new Process();
+            using Process fileopener = new();
 
             fileopener.StartInfo.FileName = "explorer";
             fileopener.StartInfo.Arguments = "\"" + path + "\"";
@@ -230,9 +254,9 @@ namespace Desktop_Container
         {
             if (Wrap_Shortcut.Children.Count > 0)
             {
-                List<List<string>> save_datas = new List<List<string>>();
-                List<string> options = new List<string>();
-                List<string> items = new List<string>();
+                List<List<string>> save_datas = new();
+                List<string> options = new();
+                List<string> items = new();
 
                 options.Add(Container_Title.Text);
                 options.Add(containerReduced.ToString());
@@ -386,7 +410,7 @@ namespace Desktop_Container
             }
         }
 
-        private void Hover_Item(Grid item, bool hovering)
+        private static void Hover_Item(Grid item, bool hovering)
         {
             if(hovering)
                 item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
