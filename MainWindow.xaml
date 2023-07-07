@@ -51,8 +51,9 @@
             </Grid>
 
             <Border Grid.Row="1" VerticalAlignment="Center">
-                <WrapPanel x:Name="Wrap_Shortcut" Margin="0,10,0,10" HorizontalAlignment="Center">
-                </WrapPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                    <WrapPanel x:Name="Wrap_Shortcut" Margin="0,10,0,10" HorizontalAlignment="Center"/>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Border>
