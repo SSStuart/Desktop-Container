@@ -52,6 +52,12 @@ namespace Desktop_Container
         bool containerReduced = false;
         bool pinned = false;
 
+
+        RowDefinition ROW_DEFINITION_TITLE = new RowDefinition()
+        { Height = GridLength.Auto };
+        RowDefinition ROW_DEFINITION_WRAP = new RowDefinition()
+        { Height = new GridLength(1, GridUnitType.Star) };
+
         double CONTAINER_HEIGHT = 400;
         public MainWindow(List<List<string>> save_datas = null, string timestampText = "")
         {
@@ -73,8 +79,11 @@ namespace Desktop_Container
                 // Récupération de l'état (réduit/ouvert) du container
                 containerReduced = options[1] == "True";
 
+                // Récupération de la position de la barre de titre
+                bottom_titlebar = options[2] == "True";
+
                 // Récupération des dimensions du container
-                List<string> sizeContainer = options[2].Split(";").ToList();
+                List<string> sizeContainer = options[3].Split(";").ToList();
                 MainContainer.Width = int.Parse(sizeContainer[0]);
                 int savedContainerHeight = int.Parse(sizeContainer[1]);
                 if (savedContainerHeight > 50)
@@ -84,7 +93,7 @@ namespace Desktop_Container
                 MainContainer.Height = CONTAINER_HEIGHT;
 
                 // Récupération des coordonnées du container
-                List<string> posContainer = options[3].Split(";").ToList();
+                List<string> posContainer = options[4].Split(";").ToList();
                 MainContainer.Left = int.Parse(posContainer[0]);
                 MainContainer.Top = int.Parse(posContainer[1]);
 
@@ -95,6 +104,17 @@ namespace Desktop_Container
                     Wrap_Shortcut.Visibility = Visibility.Collapsed;
                     MainContainer.Height = 20;
                     MainContainer.ResizeMode = ResizeMode.NoResize;
+                }
+                if (bottom_titlebar)
+                {
+                    Grid_Container.RowDefinitions.Clear();
+                    Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
+                    Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
+                    TitleBar.SetValue(Grid.RowProperty, 1);
+                    Scroll_Container.SetValue(Grid.RowProperty, 0);
+                    Container_Border.CornerRadius = new CornerRadius(10, 10, 0, 0);
+                    TitleBar.Margin = new Thickness(0, 0, 15, 0);
+                    Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleTop.png")));
                 }
 
             } else // NOUVEAU CONTAINER
@@ -158,8 +178,6 @@ namespace Desktop_Container
                     var item_icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(shinfo.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
 
                     icone.Source = item_icon;
-
-
                     item.Children.Add(icone);
 
                     TextBlock name = new()
@@ -260,6 +278,7 @@ namespace Desktop_Container
 
                 options.Add(Container_Title.Text);
                 options.Add(containerReduced.ToString());
+                options.Add(bottom_titlebar.ToString());
 
                 if (!containerReduced)
                     CONTAINER_HEIGHT = MainContainer.Height;
@@ -318,6 +337,7 @@ namespace Desktop_Container
             {
                 Btn_Restart.Visibility = Visibility.Collapsed;
                 Btn_Pin.Visibility = Visibility.Collapsed;
+                Btn_Invert.Visibility = Visibility.Collapsed;
                 Btn_NewContainer.Visibility = Visibility.Collapsed;
                 Btn_CloseContainer.Visibility = Visibility.Collapsed;
             }
@@ -325,6 +345,7 @@ namespace Desktop_Container
             {
                 Btn_Restart.Visibility = Visibility.Visible;
                 Btn_Pin.Visibility = Visibility.Visible;
+                Btn_Invert.Visibility= Visibility.Visible;
                 Btn_NewContainer.Visibility = Visibility.Visible;
                 Btn_CloseContainer.Visibility = Visibility.Visible;
             }
@@ -342,6 +363,34 @@ namespace Desktop_Container
         {
             MainContainer.Topmost = !MainContainer.Topmost;
             pinned = MainContainer.Topmost;
+        }
+
+        bool bottom_titlebar = false;
+        private void Btn_Invert_Click(object sender, RoutedEventArgs e)
+        {
+            bottom_titlebar = !bottom_titlebar;
+            Grid_Container.RowDefinitions.Clear();
+
+            if (bottom_titlebar)
+            {
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
+                TitleBar.SetValue(Grid.RowProperty, 1);
+                Scroll_Container.SetValue(Grid.RowProperty, 0);
+                Container_Border.CornerRadius = new CornerRadius(10,10,0,0);
+                TitleBar.Margin = new Thickness(0,0,15,0);
+                Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleTop.png")));
+            }
+            else
+            {
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
+                TitleBar.SetValue(Grid.RowProperty, 0);
+                Scroll_Container.SetValue(Grid.RowProperty, 1);
+                Container_Border.CornerRadius = new CornerRadius(0, 0, 10, 10);
+                TitleBar.Margin = new Thickness(0);
+                Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleBottom.png")));
+            }
         }
 
         private void Btn_NewContainer_Click(object sender, RoutedEventArgs e)
@@ -372,6 +421,7 @@ namespace Desktop_Container
             Container_Border.Background = new SolidColorBrush(Color.FromArgb(0x50, 0, 0, 0));
             Btn_ContainerOptions.Visibility = Visibility.Collapsed;
             Btn_Restart.Visibility = Visibility.Collapsed;
+            Btn_Invert.Visibility = Visibility.Collapsed;
             Btn_NewContainer.Visibility = Visibility.Collapsed;
             Btn_CloseContainer.Visibility = Visibility.Collapsed;
             optionsOpened = false;
@@ -399,15 +449,26 @@ namespace Desktop_Container
                 Wrap_Shortcut.Visibility = Visibility.Visible;
                 MainContainer.Height = CONTAINER_HEIGHT;
                 MainContainer.ResizeMode = ResizeMode.CanResizeWithGrip;
-                containerReduced = false;
+                if (bottom_titlebar)
+                {
+                    var location = MainContainer.PointToScreen(new Point(0, 0));
+                    MainContainer.Left = location.X;
+                    MainContainer.Top = location.Y - MainContainer.Height + 20;
+                }
             }
             else
             {
+                if (bottom_titlebar)
+                {
+                    var location = MainContainer.PointToScreen(new Point(0, 0));
+                    MainContainer.Left = location.X;
+                    MainContainer.Top = location.Y + MainContainer.Height - 20;
+                }
                 Wrap_Shortcut.Visibility = Visibility.Collapsed;
                 MainContainer.Height = 20;
                 MainContainer.ResizeMode = ResizeMode.NoResize;
-                containerReduced = true;
             }
+            containerReduced = !containerReduced;
         }
 
         private static void Hover_Item(Grid item, bool hovering)

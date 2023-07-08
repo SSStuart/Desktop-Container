@@ -19,6 +19,9 @@
     <None Remove="images\new.png" />
     <None Remove="images\pin.png" />
     <None Remove="images\reload.png" />
+    <None Remove="images\switchTitle.png" />
+    <None Remove="images\switchTitleBottom.png" />
+    <None Remove="images\switchTitleTop.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +47,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="images\reload.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\switchTitleBottom.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\switchTitleTop.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

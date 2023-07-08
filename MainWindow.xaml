@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="Container" WindowStyle="None" ShowInTaskbar="False" MouseDown="MainContainer_MouseDown" Drop="MainContainer_Drop" AllowDrop="True" ResizeMode="CanResizeWithGrip" MouseEnter="MainContainer_MouseEnter" MouseLeave="MainContainer_MouseLeave" MouseUp="MainContainer_MouseUp" Width="400" Height="400" Icon="/images/icone.png" UseLayoutRounding="False" Background="Transparent" Closing="MainContainer_Closing" AllowsTransparency="True">
     <Border x:Name="Container_Border" CornerRadius="0,0,10,10" Background="#4C202020">
-        <Grid>
+        <Grid x:Name="Grid_Container">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="*"/>
@@ -21,36 +21,42 @@
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="Container_Title" Text="..." HorizontalAlignment="Center" BorderThickness="0,0,0,0" Background="{x:Null}" Foreground="White" />
-                <Button x:Name="Btn_ContainerOptions" Content="" Grid.Column="1" FontSize="15" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Click="Btn_ContainerOptions_Click" Cursor="Hand" ToolTip="Options" Visibility="Collapsed" >
+                <Button x:Name="Btn_ContainerOptions" Grid.Column="1" FontSize="15" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Click="Btn_ContainerOptions_Click" Cursor="Hand" ToolTip="Options" Visibility="Collapsed" >
                     <Button.Background>
                         <ImageBrush Stretch="Uniform" ImageSource="/images/more.png"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Restart" Content="" Grid.Column="2" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Recharger" Click="Btn_Restart_Click" >
+                <Button x:Name="Btn_Restart" Grid.Column="2" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Recharger" Click="Btn_Restart_Click" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/reload.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Pin" Content="" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Epingler" Click="Btn_Pin_Click" >
+                <Button x:Name="Btn_Pin" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Epingler" Click="Btn_Pin_Click" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/pin.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_NewContainer" Content="" Click="Btn_NewContainer_Click" Grid.Column="4" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Nouveau Container" >
+                <Button x:Name="Btn_Invert" Grid.Column="4" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Mettre le titre en haut/bas" Click="Btn_Invert_Click">
+                    <Button.Background>
+                        <ImageBrush ImageSource="/images/switchTitleBottom.png" Stretch="Uniform"/>
+                    </Button.Background>
+                </Button>
+                <Button x:Name="Btn_NewContainer" Click="Btn_NewContainer_Click" Grid.Column="5" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Nouveau Container" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/new.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_CloseContainer" Content="" Click="Btn_CloseContainer_Click" Grid.Column="5" FontSize="15" Visibility="Collapsed" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Fermer" >
+                <Button x:Name="Btn_CloseContainer" Click="Btn_CloseContainer_Click" Grid.Column="6" FontSize="15" Visibility="Collapsed" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Fermer" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/close.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
             </Grid>
 
-            <Border Grid.Row="1" VerticalAlignment="Center">
+            <Border x:Name="Scroll_Container" Grid.Row="1" VerticalAlignment="Center">
                 <ScrollViewer VerticalScrollBarVisibility="Hidden">
                     <WrapPanel x:Name="Wrap_Shortcut" Margin="0,10,0,10" HorizontalAlignment="Center"/>
                 </ScrollViewer>
