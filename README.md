@@ -17,6 +17,7 @@
 
 ## Know issues ⚠️
 - The Containers don't always stay on the desktop
+- Containers appearing in "Alt + Tab"
 - Multiple instances of the application can be launched
 
 - ✔️ ~~Custom folder icons are not supported~~
