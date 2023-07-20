@@ -16,6 +16,8 @@
     <None Remove="images\icone.ico" />
     <None Remove="images\icone.png" />
     <None Remove="images\more.png" />
+    <None Remove="images\moveLeft.png" />
+    <None Remove="images\moveRight.png" />
     <None Remove="images\new.png" />
     <None Remove="images\pin.png" />
     <None Remove="images\reload.png" />
@@ -38,6 +40,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="images\more.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\moveLeft.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\moveRight.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="images\new.png">

@@ -10,12 +10,14 @@
         <Grid x:Name="Grid_Container">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <Grid x:Name="TitleBar" Height="20" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Background="#00000000" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="auto"/>
@@ -29,34 +31,58 @@
                         <ImageBrush Stretch="Uniform" ImageSource="/images/more.png"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Restart" Grid.Column="2" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Recharger" Click="Btn_Restart_Click" >
+                <Button x:Name="Btn_Restart" Grid.Column="2" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Reload" Click="Btn_Restart_Click" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/reload.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Pin" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Epingler" Click="Btn_Pin_Click" >
+                <Button x:Name="Btn_Color" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Color" Click="Btn_Color_Click">
+                    <Button.Background>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="#FFC90000"/>
+                            <GradientStop Color="#FF005DBD" Offset="1"/>
+                            <GradientStop Color="#FFAFA400" Offset="0.333"/>
+                            <GradientStop Color="#FF48AF00" Offset="0.669"/>
+                        </LinearGradientBrush>
+                    </Button.Background>
+                </Button>
+                <Button x:Name="Btn_Pin" Grid.Column="4" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Pin" Click="Btn_Pin_Click" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/pin.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Invert" Grid.Column="4" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Mettre le titre en haut/bas" Click="Btn_Invert_Click">
+                <Button x:Name="Btn_Invert" Grid.Column="5" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Toggle title position" Click="Btn_Invert_Click">
                     <Button.Background>
                         <ImageBrush ImageSource="/images/switchTitleBottom.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_NewContainer" Click="Btn_NewContainer_Click" Grid.Column="5" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Nouveau Container" >
+                <Button x:Name="Btn_NewContainer" Grid.Column="6" Click="Btn_NewContainer_Click" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="New Container" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/new.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_CloseContainer" Click="Btn_CloseContainer_Click" Grid.Column="6" FontSize="15" Visibility="Collapsed" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Fermer" >
+                <Button x:Name="Btn_CloseContainer" Grid.Column="7" Click="Btn_CloseContainer_Click" FontSize="15" Visibility="Collapsed" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Close" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/close.png" Stretch="Uniform"/>
                     </Button.Background>
                 </Button>
             </Grid>
 
-            <Border x:Name="Scroll_Container" Grid.Row="1" VerticalAlignment="Center">
+            <WrapPanel x:Name="Color_Palette" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Row="1">
+                <Button x:Name="Btn_Color1" Background="#FF930000" BorderThickness="0,0,0,0" Click="Btn_Color1_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color2" Background="#FF906D00" BorderThickness="0,0,0,0" Click="Btn_Color2_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color3" Background="#FF888F00" BorderThickness="0,0,0,0" Click="Btn_Color3_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color4" Background="#FF559A00" BorderThickness="0,0,0,0" Click="Btn_Color4_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color5" Background="#FF00892B" BorderThickness="0,0,0,0" Click="Btn_Color5_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color6" Background="#FF008C86" BorderThickness="0,0,0,0" Click="Btn_Color6_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color7" Background="#FF004D80" BorderThickness="0,0,0,0" Click="Btn_Color7_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color8" Background="#FF350081" BorderThickness="0,0,0,0" Click="Btn_Color8_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color9" Background="#FF630080" BorderThickness="0,0,0,0" Click="Btn_Color9_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color10" Background="#FF7E005F" BorderThickness="0,0,0,0" Cursor="" Click="Btn_Color10_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+                <Button x:Name="Btn_Color11" Background="#FF202020" BorderThickness="0,0,0,0" Cursor="" Click="Btn_Color11_Click" Width="16" Height="16" Margin="2,2,2,2"/>
+            </WrapPanel>
+
+            <Border x:Name="Scroll_Container" Grid.Row="2" VerticalAlignment="Center">
                 <ScrollViewer VerticalScrollBarVisibility="Hidden">
                     <WrapPanel x:Name="Wrap_Shortcut" Margin="0,10,0,10" HorizontalAlignment="Center"/>
                 </ScrollViewer>

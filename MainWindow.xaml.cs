@@ -6,10 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace Desktop_Container
@@ -51,11 +53,14 @@ namespace Desktop_Container
         readonly string saveDirectory;
         bool containerReduced = false;
         bool pinned = false;
+        Brush container_color = (SolidColorBrush)new BrushConverter().ConvertFrom("#4C202020");
 
 
-        RowDefinition ROW_DEFINITION_TITLE = new RowDefinition()
+        readonly RowDefinition ROW_DEFINITION_TITLE = new()
         { Height = GridLength.Auto };
-        RowDefinition ROW_DEFINITION_WRAP = new RowDefinition()
+        readonly RowDefinition ROW_DEFINITION_PALETTE = new()
+        { Height = GridLength.Auto };
+        readonly RowDefinition ROW_DEFINITION_WRAP = new()
         { Height = new GridLength(1, GridUnitType.Star) };
 
         double CONTAINER_HEIGHT = 400;
@@ -82,8 +87,11 @@ namespace Desktop_Container
                 // Récupération de la position de la barre de titre
                 bottom_titlebar = options[2] == "True";
 
+                // Récupération de la couleur d'arrière plan
+                container_color = (SolidColorBrush)new BrushConverter().ConvertFrom(options[3]);
+
                 // Récupération des dimensions du container
-                List<string> sizeContainer = options[3].Split(";").ToList();
+                List<string> sizeContainer = options[4].Split(";").ToList();
                 MainContainer.Width = int.Parse(sizeContainer[0]);
                 int savedContainerHeight = int.Parse(sizeContainer[1]);
                 if (savedContainerHeight > 50)
@@ -93,7 +101,7 @@ namespace Desktop_Container
                 MainContainer.Height = CONTAINER_HEIGHT;
 
                 // Récupération des coordonnées du container
-                List<string> posContainer = options[4].Split(";").ToList();
+                List<string> posContainer = options[5].Split(";").ToList();
                 MainContainer.Left = int.Parse(posContainer[0]);
                 MainContainer.Top = int.Parse(posContainer[1]);
 
@@ -109,18 +117,21 @@ namespace Desktop_Container
                 {
                     Grid_Container.RowDefinitions.Clear();
                     Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
+                    Grid_Container.RowDefinitions.Add(ROW_DEFINITION_PALETTE);
                     Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
-                    TitleBar.SetValue(Grid.RowProperty, 1);
+                    TitleBar.SetValue(Grid.RowProperty, 2);
+                    Color_Palette.SetValue(Grid.RowProperty, 1);
                     Scroll_Container.SetValue(Grid.RowProperty, 0);
                     Container_Border.CornerRadius = new CornerRadius(10, 10, 0, 0);
                     TitleBar.Margin = new Thickness(0, 0, 15, 0);
                     Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleTop.png")));
                 }
 
+                Container_Border.Background = container_color;
+
             } else // NOUVEAU CONTAINER
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         }
-
 
         private void AddItem(string[] files)
         {
@@ -136,16 +147,24 @@ namespace Desktop_Container
                     else
                         filename = Path.GetFileName(file);
 
+                    Border roundedBorder = new()
+                    {
+                        CornerRadius = new CornerRadius(10),
+                        Margin = new Thickness(2),
+                    };
+                    Wrap_Shortcut.Children.Add(roundedBorder);
+
                     Grid item = new()
                     {
-                        Height = 100,
+                        MaxHeight = 100,
                         Width = 100,
                         Margin = new Thickness(5),
                         Tag = file,
                         Cursor = Cursors.Hand,
                         VerticalAlignment = VerticalAlignment.Center,
+                        ToolTip = file,
                     };
-                    Wrap_Shortcut.Children.Add(item);
+                    roundedBorder.Child = item;
 
                     RowDefinition row1 = new()
                     {
@@ -167,8 +186,6 @@ namespace Desktop_Container
 
                     // Récupération de l'icône du dossier / fichier
                     IntPtr hImgSmall;    //the handle to the system image list
-                    IntPtr hImgLarge;    //the handle to the system image list
-                    string fName;        // 'the file name to get icon from
                     SHFILEINFO shinfo = new();
 
                     hImgSmall = Win32.SHGetFileInfo(file, 0, ref shinfo,
@@ -198,29 +215,47 @@ namespace Desktop_Container
                     ContextMenu itemOptions = new();
                     MenuItem itemDelete = new()
                     {
-                        Header = "_Supprimer",
+                        Header = "_Delete",
+                        Icon = new Image
+                        {
+                            Source = new BitmapImage(new Uri("pack://application:,,,/images/close.png")),
+                            Height = 15,
+                            Width = 15,
+                        }
                     };
                     itemDelete.Click += (sender, args) =>
                     {
-                        Item_Delete(item);
+                        Item_Delete(roundedBorder);
                     };
                     itemOptions.Items.Add(itemDelete);
                     MenuItem itemMoveUp = new()
                     {
-                        Header = "_<- Avancer",
+                        Header = "Move _Left",
+                        Icon = new Image
+                        {
+                            Source = new BitmapImage(new Uri("pack://application:,,,/images/moveLeft.png")),
+                            Height = 15,
+                            Width = 15,
+                        }
                     };
                     itemMoveUp.Click += (sender, args) =>
                     {
-                        Item_MoveUp(item);
+                        Item_MoveUp(roundedBorder);
                     };
                     itemOptions.Items.Add(itemMoveUp);
                     MenuItem itemMoveDown = new()
                     {
-                        Header = "-_> Reculer",
+                        Header = "Move _Right",
+                        Icon = new Image
+                        {
+                            Source = new BitmapImage(new Uri("pack://application:,,,/images/moveRight.png")),
+                            Height = 15,
+                            Width = 15,
+                        }
                     };
                     itemMoveDown.Click += (sender, args) =>
                     {
-                        Item_MoveDown(item);
+                        Item_MoveDown(roundedBorder);
                     };
                     itemOptions.Items.Add(itemMoveDown);
 
@@ -231,14 +266,14 @@ namespace Desktop_Container
                         Save_Container();
                     };
 
-                    item.MouseEnter += (sender, args) =>
+                    roundedBorder.MouseEnter += (sender, args) =>
                     {
-                        Hover_Item(item, true);
+                        Hover_Item(roundedBorder, true);
                     };
 
-                    item.MouseLeave += (sender, args) =>
+                    roundedBorder.MouseLeave += (sender, args) =>
                     {
-                        Hover_Item(item, false);
+                        Hover_Item(roundedBorder, false);
                     };
                 }
                 else
@@ -279,6 +314,7 @@ namespace Desktop_Container
                 options.Add(Container_Title.Text);
                 options.Add(containerReduced.ToString());
                 options.Add(bottom_titlebar.ToString());
+                options.Add(container_color.ToString());
 
                 if (!containerReduced)
                     CONTAINER_HEIGHT = MainContainer.Height;
@@ -292,7 +328,8 @@ namespace Desktop_Container
                 var elems = Wrap_Shortcut.Children;
                 foreach (var item in elems)
                 {
-                    Grid grid = item as Grid;
+                    Border border = item as Border;
+                    Grid grid = border.Child as Grid;
                     items.Add(grid.Tag.ToString());
                 }
 
@@ -307,11 +344,11 @@ namespace Desktop_Container
                 File.Delete(saveDirectory + @"\container" + timestamp + ".json");
         }
 
-        private void Item_Delete(Grid item)
+        private void Item_Delete(Border item)
         {
             Wrap_Shortcut.Children.Remove(item);
         }
-        private void Item_MoveUp(Grid item)
+        private void Item_MoveUp(Border item)
         {
             int index = Wrap_Shortcut.Children.IndexOf(item);
             if (index != 0)
@@ -320,7 +357,7 @@ namespace Desktop_Container
                 Wrap_Shortcut.Children.Insert(index - 1, item);
             }
         }
-        private void Item_MoveDown(Grid item)
+        private void Item_MoveDown(Border item)
         {
             int index = Wrap_Shortcut.Children.IndexOf(item);
             if (index != Wrap_Shortcut.Children.Count)
@@ -331,25 +368,52 @@ namespace Desktop_Container
         }
 
         bool optionsOpened = false;
-        private void Btn_ContainerOptions_Click(object sender, RoutedEventArgs e)
+        private async void Btn_ContainerOptions_Click(object sender, RoutedEventArgs e)
+        {
+            optionsOpened = !optionsOpened;
+            if (optionsOpened)
+            {
+                Btn_Restart.Visibility = Visibility.Visible;
+                Btn_Color.Visibility = Visibility.Visible;
+                Btn_Pin.Visibility = Visibility.Visible;
+                Btn_Invert.Visibility = Visibility.Visible;
+                Btn_NewContainer.Visibility = Visibility.Visible;
+                Btn_CloseContainer.Visibility = Visibility.Visible;
+
+                await Task.Delay(10000);
+
+                Options_Auto_Collapse();
+            }
+            else
+            {
+                Btn_Restart.Visibility = Visibility.Collapsed;
+                Btn_Color.Visibility = Visibility.Collapsed;
+                Btn_Invert.Visibility = Visibility.Collapsed;
+                Btn_NewContainer.Visibility = Visibility.Collapsed;
+                Btn_CloseContainer.Visibility = Visibility.Collapsed;
+                Color_Palette.Visibility = Visibility.Collapsed;
+                if (!pinned)
+                    Btn_Pin.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void Options_Auto_Collapse()
         {
             if (optionsOpened)
             {
                 Btn_Restart.Visibility = Visibility.Collapsed;
-                Btn_Pin.Visibility = Visibility.Collapsed;
+                Btn_Color.Visibility = Visibility.Collapsed;
                 Btn_Invert.Visibility = Visibility.Collapsed;
                 Btn_NewContainer.Visibility = Visibility.Collapsed;
                 Btn_CloseContainer.Visibility = Visibility.Collapsed;
+                if (!pinned)
+                    Btn_Pin.Visibility = Visibility.Collapsed;
+
+                optionsOpened = !optionsOpened;
+
+                if(!MainContainer.IsMouseOver)
+                    Btn_ContainerOptions.Visibility = Visibility.Collapsed;
             }
-            else
-            {
-                Btn_Restart.Visibility = Visibility.Visible;
-                Btn_Pin.Visibility = Visibility.Visible;
-                Btn_Invert.Visibility= Visibility.Visible;
-                Btn_NewContainer.Visibility = Visibility.Visible;
-                Btn_CloseContainer.Visibility = Visibility.Visible;
-            }
-            optionsOpened = !optionsOpened;
         }
 
         private void Btn_Restart_Click(object sender, RoutedEventArgs e)
@@ -363,6 +427,8 @@ namespace Desktop_Container
         {
             MainContainer.Topmost = !MainContainer.Topmost;
             pinned = MainContainer.Topmost;
+            if (!optionsOpened)
+                Btn_Pin.Visibility = Visibility.Collapsed;
         }
 
         bool bottom_titlebar = false;
@@ -374,8 +440,10 @@ namespace Desktop_Container
             if (bottom_titlebar)
             {
                 Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_PALETTE);
                 Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
-                TitleBar.SetValue(Grid.RowProperty, 1);
+                TitleBar.SetValue(Grid.RowProperty, 2);
+                Color_Palette.SetValue(Grid.RowProperty, 1);
                 Scroll_Container.SetValue(Grid.RowProperty, 0);
                 Container_Border.CornerRadius = new CornerRadius(10,10,0,0);
                 TitleBar.Margin = new Thickness(0,0,15,0);
@@ -384,9 +452,11 @@ namespace Desktop_Container
             else
             {
                 Grid_Container.RowDefinitions.Add(ROW_DEFINITION_TITLE);
+                Grid_Container.RowDefinitions.Add(ROW_DEFINITION_PALETTE);
                 Grid_Container.RowDefinitions.Add(ROW_DEFINITION_WRAP);
                 TitleBar.SetValue(Grid.RowProperty, 0);
-                Scroll_Container.SetValue(Grid.RowProperty, 1);
+                Color_Palette.SetValue(Grid.RowProperty, 1);
+                Scroll_Container.SetValue(Grid.RowProperty, 2);
                 Container_Border.CornerRadius = new CornerRadius(0, 0, 10, 10);
                 TitleBar.Margin = new Thickness(0);
                 Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleBottom.png")));
@@ -412,21 +482,21 @@ namespace Desktop_Container
 
         private void MainContainer_MouseEnter(object sender, MouseEventArgs e)
         {
-            Container_Border.Background = new SolidColorBrush(Color.FromArgb(0x88, 0, 0, 0));
             Btn_ContainerOptions.Visibility = Visibility.Visible;
+
+            var color = (Color)ColorConverter.ConvertFromString(Container_Border.Background.ToString());
+            color.ScA = 0.7f;
+            Container_Border.Background = new SolidColorBrush(color);
         }
 
         private void MainContainer_MouseLeave(object sender, MouseEventArgs e)
         {
-            Container_Border.Background = new SolidColorBrush(Color.FromArgb(0x50, 0, 0, 0));
-            Btn_ContainerOptions.Visibility = Visibility.Collapsed;
-            Btn_Restart.Visibility = Visibility.Collapsed;
-            Btn_Invert.Visibility = Visibility.Collapsed;
-            Btn_NewContainer.Visibility = Visibility.Collapsed;
-            Btn_CloseContainer.Visibility = Visibility.Collapsed;
-            optionsOpened = false;
-            if(!pinned)
-                Btn_Pin.Visibility = Visibility.Collapsed;
+            if (!optionsOpened)
+            {
+                Btn_ContainerOptions.Visibility = Visibility.Collapsed;
+            }
+
+            Container_Border.Background = container_color;
         }
 
         private void MainContainer_MouseUp(object sender, MouseButtonEventArgs e)
@@ -471,17 +541,110 @@ namespace Desktop_Container
             containerReduced = !containerReduced;
         }
 
-        private static void Hover_Item(Grid item, bool hovering)
+        private static void Hover_Item(Border border_item, bool hovering)
         {
             if(hovering)
-                item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
+            {
+                ColorAnimation ca = new(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF), new Duration(TimeSpan.FromMilliseconds(250)));
+                border_item.Background = new SolidColorBrush(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF));
+                border_item.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
+            }
+                
             else
-                item.Background = new SolidColorBrush(Color.FromArgb(0x00, 0, 0, 0));
+            {
+                ColorAnimation ca = new(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), new Duration(TimeSpan.FromMilliseconds(250)));
+                border_item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
+                border_item.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
+            }
         }
 
         private void MainContainer_Closing(object sender, CancelEventArgs e)
         {
             Save_Container();
+        }
+
+        private void Btn_Color_Click(object sender, RoutedEventArgs e)
+        {
+            if (Color_Palette.Visibility == Visibility.Collapsed)
+                Color_Palette.Visibility = Visibility.Visible;
+            else
+                Color_Palette.Visibility = Visibility.Collapsed;
+        }
+
+        private void Set_Container_Background(Button button)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(button.Background.ToString());
+            color.ScA = 0.5f;
+            Container_Border.Background = new SolidColorBrush(color);
+            container_color = Container_Border.Background;
+
+            Save_Container();
+        }
+
+        private void Btn_Color1_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color2_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color3_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color4_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color5_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color6_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color7_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color8_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color9_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color10_Click(object sender, RoutedEventArgs e)
+        { 
+            Button button = sender as Button;
+            Set_Container_Background(button);
+        }
+
+        private void Btn_Color11_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Set_Container_Background(button);
         }
     }
 }
