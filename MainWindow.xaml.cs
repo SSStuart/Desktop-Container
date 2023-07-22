@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -53,6 +54,7 @@ namespace Desktop_Container
         readonly string saveDirectory;
         bool containerReduced = false;
         bool pinned = false;
+        string linkedDir = "";
         Brush container_color = (SolidColorBrush)new BrushConverter().ConvertFrom("#4C202020");
 
 
@@ -105,6 +107,19 @@ namespace Desktop_Container
                 MainContainer.Left = int.Parse(posContainer[0]);
                 MainContainer.Top = int.Parse(posContainer[1]);
 
+                var directories = save_datas[2];
+                if (directories.Count > 0)
+                {
+                    string directory = directories[0];
+                    Link_Container(true, directory);
+                    
+                    if (Directory.Exists(directory))
+                    {
+                        AddItem(Directory.GetDirectories(directory));
+                        AddItem(Directory.GetFiles(directory));
+                    }
+                }
+
                 AddItem(save_datas[1].ToArray());
 
                 if (containerReduced)
@@ -129,16 +144,23 @@ namespace Desktop_Container
 
                 Container_Border.Background = container_color;
 
-            } else // NOUVEAU CONTAINER
+            }
+            else
+            {// NOUVEAU CONTAINER
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                Empty_Container_Text.Visibility = Visibility.Visible;
+            }
         }
 
         private void AddItem(string[] files)
         {
             foreach (string file in files)
             {
-                if (File.Exists(file) || Directory.Exists(file))
+                if ((File.Exists(file) && Path.GetFileName(file) != "desktop.ini")|| Directory.Exists(file) )
                 {
+                    Empty_Container_Text.Visibility = Visibility.Collapsed;
+
                     string filename;
                     if (File.Exists(file) && Path.GetFileNameWithoutExtension(file) != "")
                         filename = Path.GetFileNameWithoutExtension(file);
@@ -151,6 +173,10 @@ namespace Desktop_Container
                     {
                         CornerRadius = new CornerRadius(10),
                         Margin = new Thickness(2),
+                        Cursor = Cursors.Hand,
+                        Tag = file,
+                        ToolTip = file,
+                        Background = Brushes.Transparent,
                     };
                     Wrap_Shortcut.Children.Add(roundedBorder);
 
@@ -159,10 +185,7 @@ namespace Desktop_Container
                         MaxHeight = 100,
                         Width = 100,
                         Margin = new Thickness(5),
-                        Tag = file,
-                        Cursor = Cursors.Hand,
                         VerticalAlignment = VerticalAlignment.Center,
-                        ToolTip = file,
                     };
                     roundedBorder.Child = item;
 
@@ -207,9 +230,9 @@ namespace Desktop_Container
                     item.Children.Add(name);
                     Grid.SetRow(name, 1);
 
-                    item.MouseLeftButtonDown += (sender, args) =>
+                    roundedBorder.MouseLeftButtonDown += (sender, args) =>
                     {
-                        OpenWithDefaultProgram(item.Tag.ToString());
+                        OpenWithDefaultProgram(roundedBorder.Tag.ToString());
                     };
 
                     ContextMenu itemOptions = new();
@@ -218,7 +241,7 @@ namespace Desktop_Container
                         Header = "_Delete",
                         Icon = new Image
                         {
-                            Source = new BitmapImage(new Uri("pack://application:,,,/images/close.png")),
+                            Source = new BitmapImage(new Uri("pack://application:,,,/images/delete.png")),
                             Height = 15,
                             Width = 15,
                         }
@@ -258,10 +281,26 @@ namespace Desktop_Container
                         Item_MoveDown(roundedBorder);
                     };
                     itemOptions.Items.Add(itemMoveDown);
+                    MenuItem deleteAll = new()
+                    {
+                        Header = "_Empty Container",
+                        Icon = new Image
+                        {
+                            Source = new BitmapImage(new Uri("pack://application:,,,/images/deleteAll.png")),
+                            Height = 15,
+                            Width = 15,
+                        }
+                    };
+                    deleteAll.Click += (sender, args) =>
+                    {
+                        Delete_All();
+                    };
+                    itemOptions.Items.Add(deleteAll);
 
-                    item.ContextMenu = itemOptions;
 
-                    item.MouseRightButtonUp += (sender, args) =>
+                    roundedBorder.ContextMenu = itemOptions;
+
+                    roundedBorder.MouseRightButtonUp += (sender, args) =>
                     {
                         Save_Container();
                     };
@@ -275,10 +314,6 @@ namespace Desktop_Container
                     {
                         Hover_Item(roundedBorder, false);
                     };
-                }
-                else
-                {
-                    MessageBox.Show(file + "\r\nFichier/Dossier introuvable\r\nProbablement supprimé ou déplacé", "Fichier manquant", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
@@ -310,6 +345,7 @@ namespace Desktop_Container
                 List<List<string>> save_datas = new();
                 List<string> options = new();
                 List<string> items = new();
+                List<string> directories = new();
 
                 options.Add(Container_Title.Text);
                 options.Add(containerReduced.ToString());
@@ -325,16 +361,22 @@ namespace Desktop_Container
                 string posContainer = MainContainer.PointToScreen(new Point(0, 0)).ToString();
                 options.Add(posContainer);
 
-                var elems = Wrap_Shortcut.Children;
-                foreach (var item in elems)
+                if(linkedDir == "")
                 {
-                    Border border = item as Border;
-                    Grid grid = border.Child as Grid;
-                    items.Add(grid.Tag.ToString());
+                    var elems = Wrap_Shortcut.Children;
+                    foreach (var item in elems)
+                    {
+                        Border border = item as Border;
+                        items.Add(border.Tag.ToString());
+                    }
+                } else
+                {
+                    directories.Add(linkedDir);
                 }
 
                 save_datas.Add(options);
                 save_datas.Add(items);
+                save_datas.Add(directories);
 
                 var json = JsonSerializer.Serialize(save_datas);
 
@@ -347,6 +389,9 @@ namespace Desktop_Container
         private void Item_Delete(Border item)
         {
             Wrap_Shortcut.Children.Remove(item);
+            if (Wrap_Shortcut.Children.Count == 0)
+                Empty_Container_Text.Visibility = Visibility.Visible;
+            Link_Container(false);
         }
         private void Item_MoveUp(Border item)
         {
@@ -365,6 +410,12 @@ namespace Desktop_Container
                 Wrap_Shortcut.Children.Remove(item);
                 Wrap_Shortcut.Children.Insert(index + 1, item);
             }
+        }
+        private void Delete_All()
+        {
+            Wrap_Shortcut.Children.Clear();
+            Empty_Container_Text.Visibility = Visibility.Visible;
+            Link_Container(false);
         }
 
         bool optionsOpened = false;
@@ -445,6 +496,7 @@ namespace Desktop_Container
                 TitleBar.SetValue(Grid.RowProperty, 2);
                 Color_Palette.SetValue(Grid.RowProperty, 1);
                 Scroll_Container.SetValue(Grid.RowProperty, 0);
+                Empty_Container_Text.SetValue(Grid.RowProperty, 0);
                 Container_Border.CornerRadius = new CornerRadius(10,10,0,0);
                 TitleBar.Margin = new Thickness(0,0,15,0);
                 Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleTop.png")));
@@ -457,6 +509,7 @@ namespace Desktop_Container
                 TitleBar.SetValue(Grid.RowProperty, 0);
                 Color_Palette.SetValue(Grid.RowProperty, 1);
                 Scroll_Container.SetValue(Grid.RowProperty, 2);
+                Empty_Container_Text.SetValue(Grid.RowProperty, 2);
                 Container_Border.CornerRadius = new CornerRadius(0, 0, 10, 10);
                 TitleBar.Margin = new Thickness(0);
                 Btn_Invert.Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/images/switchTitleBottom.png")));
@@ -474,10 +527,10 @@ namespace Desktop_Container
             MainContainer.Close();
         }
 
-        private void MainContainer_MouseDown(object sender, MouseButtonEventArgs e)
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2)
-                this.DragMove();
+                DragMove();
         }
 
         private void MainContainer_MouseEnter(object sender, MouseEventArgs e)
@@ -645,6 +698,43 @@ namespace Desktop_Container
         {
             Button button = sender as Button;
             Set_Container_Background(button);
+        }
+
+        private void Empty_Container_Text_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            CommonOpenFileDialog dialog = new()
+            {
+                IsFolderPicker = true
+            };
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                string path = dialog.FileName;
+                if (Directory.Exists(path))
+                {
+                    Link_Container(true, path);
+                    AddItem(Directory.GetDirectories(path));
+                    AddItem(Directory.GetFiles(path));
+
+                    string name = Path.GetFileName(path);
+                    Container_Title.Text = Path.GetFileName(name);
+                    MainContainer.Title = Path.GetFileName(name);
+                }
+            }
+        }
+
+        private void Link_Container(bool link, string path = "")
+        {
+            if (link)
+            {
+                linkedDir = path;
+                Icon_LinkedContainer.Visibility = Visibility.Visible;
+                Icon_LinkedContainer.ToolTip = "The contents of this Container is linked to a folder (" + path + ")";
+            } else
+            {
+                linkedDir = "";
+                Icon_LinkedContainer.Visibility = Visibility.Collapsed;
+            }
+            Save_Container();
         }
     }
 }

@@ -12,9 +12,12 @@
 
   <ItemGroup>
     <None Remove="images\close.png" />
+    <None Remove="images\delete.png" />
+    <None Remove="images\deleteAll.png" />
     <None Remove="images\directory.png" />
     <None Remove="images\icone.ico" />
     <None Remove="images\icone.png" />
+    <None Remove="images\linked.png" />
     <None Remove="images\more.png" />
     <None Remove="images\moveLeft.png" />
     <None Remove="images\moveRight.png" />
@@ -30,6 +33,12 @@
     <Content Include="images\close.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="images\deleteAll.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\delete.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="images\directory.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -37,6 +46,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="images\icone.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\linked.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="images\more.png">
@@ -66,6 +78,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.5" />
     <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
 
