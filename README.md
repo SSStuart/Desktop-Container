@@ -6,6 +6,7 @@
 
 ## Features
 ➕ Create *Container* and add any files/folder you want with drag & drop
+
 🔗 You can also select a folder to display its contents
 
 🔤 Name the Container, move it, resize it, recolor it as you like
