@@ -16,7 +16,7 @@
 
             <TextBlock x:Name="Empty_Container_Text" Grid.Row="2" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MouseDown="Empty_Container_Text_MouseDown" Foreground="#CCFFFFFF" FontStyle="Italic" Panel.ZIndex="1" Cursor="Hand">Drag files or folders to add them, or click to select a folder and display its contents.</TextBlock>
 
-            <Grid x:Name="TitleBar" Height="20" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Background="#00000000" MouseDown="TitleBar_MouseDown" >
+            <Grid x:Name="TitleBar" Height="20" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Background="#00000000" MouseDown="TitleBar_MouseDown" MouseUp="TitleBar_MouseUp" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="*"/>

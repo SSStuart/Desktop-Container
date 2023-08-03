@@ -530,7 +530,14 @@ namespace Desktop_Container
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2)
+                MainContainer.ResizeMode = ResizeMode.NoResize;
                 DragMove();
+        }
+
+        private void TitleBar_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!containerReduced)
+                MainContainer.ResizeMode = ResizeMode.CanResizeWithGrip;
         }
 
         private void MainContainer_MouseEnter(object sender, MouseEventArgs e)
