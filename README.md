@@ -7,18 +7,21 @@
 ## Features
 ➕ Create *Container* and add any files/folder you want with drag & drop
 
-🔤 Name the Container, move it, and resize it as you like
+🔗 You can also select a folder to display its contents
 
-💾 Containers content and property are automatically saved (`%AppData%\DesktopContainer\`), when an empty Container is closed the save file is deleted
+🔤 Name the Container, move it, resize it, recolor it as you like
+
+💾 Containers content and property are automatically saved (`%AppData%\DesktopContainer\`), when a Container is emptied the save file is deleted
 
 📌 You can pin any Container to keep it in front of other windows
 
-↔️ You can reorganize and delete Container's item by right clicking them
+↔️ You can reorganize, delete one or all items by right-clicking on them.
 
 ## Know issues ⚠️
 - The Containers don't always stay on the desktop
 - Containers appearing in "Alt + Tab"
 - Multiple instances of the application can be launched
+- (Icons are a bit blurry)
 
 - ✔️ ~~Custom folder icons are not supported~~
 - ✔️ ~~Unable to scroll if items are overflowing~~
