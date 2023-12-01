@@ -3,7 +3,7 @@
 ## A WPF app inspired by [Fences](https://www.stardock.com/products/fences/)
 
 
-*A Beta version is available [here](https://github.com/SSStuart/Desktop-Container/releases)*.
+### *A Beta version is available [here](https://github.com/SSStuart/Desktop-Container/releases)*.
 
 ![icone](images/screenshot.png)
 
