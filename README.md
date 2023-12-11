@@ -19,9 +19,9 @@
 
 ## Know issues ⚠️
 - The Containers don't always stay on the desktop
-- Containers appearing in "Alt + Tab"
-- Multiple instances of the application can be launched
 - (Icons are a bit blurry)
 
 - ✔️ ~~Custom folder icons are not supported~~
 - ✔️ ~~Unable to scroll if items are overflowing~~
+- ✔️ ~~Containers appearing in "Alt + Tab"~~
+- ✔️ ~~Multiple instances of the application can be launched~~

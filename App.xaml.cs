@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -14,6 +15,23 @@ namespace Desktop_Container
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            // Only allow one instance of the application
+            Process thisProc = Process.GetCurrentProcess();
+            if (Process.GetProcessesByName(thisProc.ProcessName).Length > 1)
+            {
+                int launchedInstanceId = Process.GetProcessesByName(thisProc.ProcessName)[0].Id;
+                MessageBoxResult userChoice = MessageBox.Show("  Another Desktop Container instance is already running.\r\n\r\n  Do you want to close all instances?", "The app is already running", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
+                if (userChoice == MessageBoxResult.OK)
+                {
+                    // Close all instances
+                    Process.GetProcessById(launchedInstanceId).Kill();
+                }
+                Application.Current.Shutdown();
+                return;
+            }
+
+            //base.OnStartup(e);
+
             string saveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DesktopContainer";
             if (!Directory.Exists(saveDirectory))
                 Directory.CreateDirectory(saveDirectory);
@@ -22,7 +40,7 @@ namespace Desktop_Container
 
             foreach (string container in savedContainer)
             {
-                StreamReader r = new StreamReader(container);
+                StreamReader r = new(container);
                 string json = r.ReadToEnd();
                 if(json != "")
                 {
@@ -31,7 +49,7 @@ namespace Desktop_Container
 
                     string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
 
-                    MainWindow newContainer = new MainWindow(save_datas, timestampText);
+                    MainWindow newContainer = new(save_datas, timestampText);
                     newContainer.Show();
                 }
             }
@@ -39,8 +57,8 @@ namespace Desktop_Container
 
         void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
-            var main = App.Current.MainWindow as MainWindow;
-            main.Save_Container();
+            //var main = App.Current.MainWindow as MainWindow;
+            //main.Save_Container();
         }
     }
 }

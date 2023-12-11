@@ -1,7 +1,6 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -14,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Interop;
 
 namespace Desktop_Container
 {
@@ -50,12 +50,28 @@ namespace Desktop_Container
 
     public partial class MainWindow : Window
     {
+        // Hiding the Container from Alt+Tab
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        private const int GWL_EX_STYLE = -20;
+        private const int WS_EX_APPWINDOW = 0x00040000, WS_EX_TOOLWINDOW = 0x00000080;
+        private void MainContainer_Loaded(object sender, RoutedEventArgs e)
+        {
+            var helper = new WindowInteropHelper(this).Handle;
+            SetWindowLong(helper, GWL_EX_STYLE, (GetWindowLong(helper, GWL_EX_STYLE) | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
+        }
+        // =================================
+
         long timestamp = 0;
         readonly string saveDirectory;
         bool containerReduced = false;
         bool pinned = false;
         string linkedDir = "";
         Brush container_color = (SolidColorBrush)new BrushConverter().ConvertFrom("#4C202020");
+        bool posAnchoredRight, posAnchoredBottom = false;
+        int positionHori, positionVert;
 
 
         readonly RowDefinition ROW_DEFINITION_TITLE = new()
@@ -103,9 +119,25 @@ namespace Desktop_Container
                 MainContainer.Height = CONTAINER_HEIGHT;
 
                 // Récupération des coordonnées du container
-                List<string> posContainer = options[5].Split(";").ToList();
-                MainContainer.Left = int.Parse(posContainer[0]);
-                MainContainer.Top = int.Parse(posContainer[1]);
+                string[] posContainer = options[5].Split(",");
+                int posX = int.Parse(posContainer[0]);
+                int posY = int.Parse(posContainer[1]);
+                if (posX < 0)
+                {
+                    posX = (int)SystemParameters.PrimaryScreenWidth + posX - (int)MainContainer.Width;
+                    posAnchoredRight = true;
+                }
+                if (posY < 0)
+                {
+                    posY = (int)SystemParameters.PrimaryScreenHeight + posY;
+                    if (!containerReduced)
+                        posY -= (int)MainContainer.Height;
+                    else
+                        posY -= 20;
+                    posAnchoredBottom = true;
+                }
+                MainContainer.Left = posX;
+                MainContainer.Top = posY;
 
                 var directories = save_datas[2];
                 if (directories.Count > 0)
@@ -127,6 +159,8 @@ namespace Desktop_Container
                     Wrap_Shortcut.Visibility = Visibility.Collapsed;
                     MainContainer.Height = 20;
                     MainContainer.ResizeMode = ResizeMode.NoResize;
+                    Btn_Color.Visibility = Visibility.Collapsed;
+                    Color_Palette.Visibility = Visibility.Collapsed;
                 }
                 if (bottom_titlebar)
                 {
@@ -144,6 +178,7 @@ namespace Desktop_Container
 
                 Container_Border.Background = container_color;
 
+                Btn_Settings.IsEnabled = true;
             }
             else
             {// NOUVEAU CONTAINER
@@ -358,7 +393,16 @@ namespace Desktop_Container
                 int[] sizeContainer = { (int)MainContainer.Width, (int)CONTAINER_HEIGHT };
                 options.Add(sizeContainer[0].ToString() + ";" + sizeContainer[1].ToString());
 
-                string posContainer = MainContainer.PointToScreen(new Point(0, 0)).ToString();
+                if (!posAnchoredRight)
+                    positionHori = (int)MainContainer.PointToScreen(new Point(0, 0)).X;
+                else
+                    positionHori = -(int)(SystemParameters.PrimaryScreenWidth - MainContainer.PointToScreen(new Point(MainContainer.Width, 0)).X);
+                if (!posAnchoredBottom)
+                    positionVert = (int)MainContainer.PointToScreen(new Point(0, 0)).Y;
+                else
+                    positionVert = -(int)(SystemParameters.PrimaryScreenHeight - MainContainer.PointToScreen(new Point(0, MainContainer.Height)).Y);
+                
+                string posContainer = positionHori + "," + positionVert;
                 options.Add(posContainer);
 
                 if(linkedDir == "")
@@ -381,9 +425,15 @@ namespace Desktop_Container
                 var json = JsonSerializer.Serialize(save_datas);
 
                 File.WriteAllText(saveDirectory + @"\container" + timestamp + ".json", json);
+
+                Btn_Settings.IsEnabled = true;
             }
             else
+            {
                 File.Delete(saveDirectory + @"\container" + timestamp + ".json");
+                Btn_Settings.IsEnabled = false;
+            }
+                
         }
 
         private void Item_Delete(Border item)
@@ -424,12 +474,13 @@ namespace Desktop_Container
             optionsOpened = !optionsOpened;
             if (optionsOpened)
             {
-                Btn_Restart.Visibility = Visibility.Visible;
-                Btn_Color.Visibility = Visibility.Visible;
+                Btn_Settings.Visibility = Visibility.Visible;
                 Btn_Pin.Visibility = Visibility.Visible;
                 Btn_Invert.Visibility = Visibility.Visible;
                 Btn_NewContainer.Visibility = Visibility.Visible;
                 Btn_CloseContainer.Visibility = Visibility.Visible;
+                if(!containerReduced)
+                    Btn_Color.Visibility = Visibility.Visible;
 
                 await Task.Delay(10000);
 
@@ -437,7 +488,7 @@ namespace Desktop_Container
             }
             else
             {
-                Btn_Restart.Visibility = Visibility.Collapsed;
+                Btn_Settings.Visibility = Visibility.Collapsed;
                 Btn_Color.Visibility = Visibility.Collapsed;
                 Btn_Invert.Visibility = Visibility.Collapsed;
                 Btn_NewContainer.Visibility = Visibility.Collapsed;
@@ -452,7 +503,7 @@ namespace Desktop_Container
         {
             if (optionsOpened)
             {
-                Btn_Restart.Visibility = Visibility.Collapsed;
+                Btn_Settings.Visibility = Visibility.Collapsed;
                 Btn_Color.Visibility = Visibility.Collapsed;
                 Btn_Invert.Visibility = Visibility.Collapsed;
                 Btn_NewContainer.Visibility = Visibility.Collapsed;
@@ -467,11 +518,13 @@ namespace Desktop_Container
             }
         }
 
-        private void Btn_Restart_Click(object sender, RoutedEventArgs e)
+        private void BtnSettings_Click(object sender, RoutedEventArgs e)
         {
-            Save_Container();
-            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
-            Application.Current.Shutdown();
+            ContainerSettings settings = new(timestamp)
+            {
+                Owner = this
+            };
+            settings.ShowDialog();
         }
 
         private void Btn_Pin_Click(object sender, RoutedEventArgs e)
@@ -530,8 +583,10 @@ namespace Desktop_Container
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2)
+            {
                 MainContainer.ResizeMode = ResizeMode.NoResize;
                 DragMove();
+            }
         }
 
         private void TitleBar_MouseUp(object sender, MouseButtonEventArgs e)
@@ -543,6 +598,8 @@ namespace Desktop_Container
         private void MainContainer_MouseEnter(object sender, MouseEventArgs e)
         {
             Btn_ContainerOptions.Visibility = Visibility.Visible;
+            if (!containerReduced)
+                MainContainer.ResizeMode = ResizeMode.CanResizeWithGrip;
 
             var color = (Color)ColorConverter.ConvertFromString(Container_Border.Background.ToString());
             color.ScA = 0.7f;
@@ -555,7 +612,8 @@ namespace Desktop_Container
             {
                 Btn_ContainerOptions.Visibility = Visibility.Collapsed;
             }
-
+            if (containerReduced)
+                MainContainer.ResizeMode = ResizeMode.NoResize;
             Container_Border.Background = container_color;
         }
 
@@ -585,6 +643,8 @@ namespace Desktop_Container
                     MainContainer.Left = location.X;
                     MainContainer.Top = location.Y - MainContainer.Height + 20;
                 }
+                if (optionsOpened)
+                    Btn_Color.Visibility = Visibility.Visible;
             }
             else
             {
@@ -595,6 +655,8 @@ namespace Desktop_Container
                     MainContainer.Top = location.Y + MainContainer.Height - 20;
                 }
                 Wrap_Shortcut.Visibility = Visibility.Collapsed;
+                Btn_Color.Visibility = Visibility.Collapsed;
+                Color_Palette.Visibility = Visibility.Collapsed;
                 MainContainer.Height = 20;
                 MainContainer.ResizeMode = ResizeMode.NoResize;
             }
@@ -616,11 +678,6 @@ namespace Desktop_Container
                 border_item.Background = new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF));
                 border_item.Background.BeginAnimation(SolidColorBrush.ColorProperty, ca);
             }
-        }
-
-        private void MainContainer_Closing(object sender, CancelEventArgs e)
-        {
-            Save_Container();
         }
 
         private void Btn_Color_Click(object sender, RoutedEventArgs e)
@@ -705,6 +762,11 @@ namespace Desktop_Container
         {
             Button button = sender as Button;
             Set_Container_Background(button);
+        }
+
+        private void ContextMenu_CloseApp_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
 
         private void Empty_Container_Text_MouseDown(object sender, MouseButtonEventArgs e)

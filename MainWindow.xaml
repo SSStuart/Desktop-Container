@@ -1,11 +1,10 @@
 ﻿<Window x:Name="MainContainer" x:Class="Desktop_Container.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Desktop_Container"
         mc:Ignorable="d"
-        Title="Container" WindowStyle="None" ShowInTaskbar="False" Drop="MainContainer_Drop" AllowDrop="True" ResizeMode="CanResizeWithGrip" MouseEnter="MainContainer_MouseEnter" MouseLeave="MainContainer_MouseLeave" MouseUp="MainContainer_MouseUp" Width="400" Height="400" Icon="/images/icone.png" UseLayoutRounding="False" Background="Transparent" Closing="MainContainer_Closing" AllowsTransparency="True">
+        Title="Container" WindowStyle="None" ShowInTaskbar="False" Drop="MainContainer_Drop" AllowDrop="True" ResizeMode="CanResizeWithGrip" MouseEnter="MainContainer_MouseEnter" MouseLeave="MainContainer_MouseLeave" MouseUp="MainContainer_MouseUp" Width="400" Height="400" Icon="/images/icone.png" UseLayoutRounding="False" Background="Transparent" AllowsTransparency="True" Loaded="MainContainer_Loaded">
     <Border x:Name="Container_Border" CornerRadius="0,0,10,10" Background="#4C202020">
         <Grid x:Name="Grid_Container">
             <Grid.RowDefinitions>
@@ -38,11 +37,16 @@
                         <ImageBrush Stretch="Uniform" ImageSource="/images/more.png"/>
                     </Button.Background>
                 </Button>
-                <Button x:Name="Btn_Restart" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Reload" Click="Btn_Restart_Click" >
+                <Button x:Name="Btn_Settings" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Settings" Click="BtnSettings_Click" IsEnabled="False">
+                    <Button.Background>
+                        <ImageBrush ImageSource="/images/settings.png" Stretch="Uniform"/>
+                    </Button.Background>
+                </Button>
+                <!--<Button x:Name="Btn_Restart" Grid.Column="3" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Reload" Click="Btn_Restart_Click" >
                     <Button.Background>
                         <ImageBrush ImageSource="/images/reload.png" Stretch="Uniform"/>
                     </Button.Background>
-                </Button>
+                </Button>-->
                 <Button x:Name="Btn_Color" Grid.Column="4" FontSize="15" Visibility="Collapsed" Width="16" Height="16" BorderThickness="1,1,1,1" Margin="2,2,2,2" Cursor="Hand" ToolTip="Color" Click="Btn_Color_Click">
                     <Button.Background>
                         <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
@@ -69,6 +73,15 @@
                     </Button.Background>
                 </Button>
                 <Button x:Name="Btn_CloseContainer" Grid.Column="8" Click="Btn_CloseContainer_Click" FontSize="15" Visibility="Collapsed" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Close" >
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem x:Name="ContextMenu_CloseApp" Header="Close all" Click="ContextMenu_CloseApp_Click">
+                                <MenuItem.Icon>
+                                    <Image Source="images/close.png" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </Button.ContextMenu>
                     <Button.Background>
                         <ImageBrush ImageSource="/images/close.png" Stretch="Uniform"/>
                     </Button.Background>
