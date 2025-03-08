@@ -30,13 +30,11 @@ namespace Desktop_Container
                 return;
             }
 
-            //base.OnStartup(e);
-
             string saveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DesktopContainer";
             if (!Directory.Exists(saveDirectory))
                 Directory.CreateDirectory(saveDirectory);
 
-            List<string> savedContainer = Directory.GetFiles(saveDirectory, "*.json").ToList();
+            List<string> savedContainer = [.. Directory.GetFiles(saveDirectory, "*.json")];
 
             foreach (string container in savedContainer)
             {
@@ -44,7 +42,7 @@ namespace Desktop_Container
                 string json = r.ReadToEnd();
                 if(json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json);
+                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
                     r.Close();
 
                     string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
@@ -53,6 +51,13 @@ namespace Desktop_Container
                     newContainer.Show();
                 }
             }
+
+            if (savedContainer.Count == 0)
+            {
+                MainWindow emptyContainer = new();
+                emptyContainer.Show();
+            }
+                
         }
 
         void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)

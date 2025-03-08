@@ -20,7 +20,10 @@
                     <ColumnDefinition Width="auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="Settings_Title" Text="Settings" HorizontalAlignment="Center" Background="{x:Null}" Foreground="White" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="Settings_Title" Text="Settings" HorizontalAlignment="Center" Background="{x:Null}" Foreground="White" />
+                    <TextBlock x:Name="Settings_Version" Text="v0.1.3" HorizontalAlignment="Center" Background="{x:Null}" Foreground="White" Margin="10,0,10,0" Opacity="0.5" />
+                </StackPanel>
 
                 <Button x:Name="Btn_CloseSettings" Grid.Column="1" Click="Btn_CloseSettings_Click" FontSize="15" Width="16" Height="16" Margin="2,2,2,2" Cursor="Hand" ToolTip="Close" >
                     <Button.Background>

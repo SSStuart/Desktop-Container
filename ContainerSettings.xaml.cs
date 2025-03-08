@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,6 +24,8 @@ namespace Desktop_Container
         {
             InitializeComponent();
 
+            Settings_Version.Text = "v" + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
             ownerTimestamp = ownerTimestampPassed;
 
             // Récupération des fichiers Container pour le dropdown
@@ -40,7 +43,7 @@ namespace Desktop_Container
                 string json = r.ReadToEnd();
                 if (json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json);
+                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
                     r.Close();
 
                     string name = save_datas[0][0];
@@ -58,7 +61,7 @@ namespace Desktop_Container
                 string json = r.ReadToEnd();
                 if (json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json);
+                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
                     r.Close();
 
                     string name = save_datas[0][0];
@@ -93,10 +96,10 @@ namespace Desktop_Container
         }
 
         int containerIndex;
-        string selectedTimestamp;
+        string selectedTimestamp = "";
         private void CmbBox_ContainersList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            string selectedValue = CmbBox_ContainersList.SelectedItem.ToString();
+            string selectedValue = CmbBox_ContainersList.SelectedItem.ToString() ?? "";
             selectedTimestamp = selectedValue.Split("[")[1].Replace("]","");
 
             if (selectedValue.Contains("(BACKUP)"))
@@ -189,7 +192,7 @@ namespace Desktop_Container
             if (json != "")
             {
 
-                List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json);
+                List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
                 r.Close();
 
                 save_datas[0][5] = position;
