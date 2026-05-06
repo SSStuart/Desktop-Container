@@ -17,7 +17,7 @@ namespace Desktop_Container
     public partial class ContainerSettings : Window
     {
         long ownerTimestamp;
-        List<string> positionsContainers = new();
+        List<List<int>> positionsContainers = [];
 
         readonly string saveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\DesktopContainer";
         public ContainerSettings(long ownerTimestampPassed)
@@ -33,21 +33,21 @@ namespace Desktop_Container
             if (!Directory.Exists(saveDirectory))
                 Directory.CreateDirectory(saveDirectory);
 
-            List<string> savedContainer = Directory.GetFiles(saveDirectory, "*.json").ToList();
-            List<string> backedUpContainer = Directory.GetFiles(saveDirectory, "*.json.backup").ToList();
-            List<string> activeContainerTS = new();
+            List<string> savedContainer = [.. Directory.GetFiles(saveDirectory, "*.json")];
+            List<string> backedUpContainer = [.. Directory.GetFiles(saveDirectory, "*.json.backup")];
+            List<string> activeContainerTS = [];
 
             foreach (string container in savedContainer)
             {
                 StreamReader r = new(container);
                 string json = r.ReadToEnd();
+                r.Close();
                 if (json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
-                    r.Close();
+                    SaveDatas saveDatas = JsonSerializer.Deserialize<SaveDatas>(json) ?? new SaveDatas();
 
-                    string name = save_datas[0][0];
-                    positionsContainers.Add(save_datas[0][5]);
+                    string name = saveDatas.Title;
+                    positionsContainers.Add(saveDatas.Position);
                     string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
                     CmbBox_ContainersList.Items.Add(name + " [" + timestampText + "]");
 
@@ -61,10 +61,10 @@ namespace Desktop_Container
                 string json = r.ReadToEnd();
                 if (json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
+                    SaveDatas saveDatas = JsonSerializer.Deserialize<SaveDatas>(json) ?? new SaveDatas();
                     r.Close();
 
-                    string name = save_datas[0][0];
+                    string name = saveDatas.Title;
                     string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
                     if (!activeContainerTS.Contains(timestampText))
                     {
@@ -222,13 +222,13 @@ namespace Desktop_Container
         {
             if(CmbBox_ContainersList.SelectedIndex != -1)
             {
-                string posX = positionsContainers[containerIndex].Split(",")[0];
-                string posY = positionsContainers[containerIndex].Split(",")[1];
-                if (posX[0] == '-')
+                int posX = positionsContainers[containerIndex][0];
+                int posY = positionsContainers[containerIndex][1];
+                if (posX < 0)
                     Radio_AnchorRight.IsChecked = true;
                 else
                     Radio_AnchorLeft.IsChecked = true;
-                if (posY[0] == '-')
+                if (posY < 0)
                     Radio_AnchorBottom.IsChecked = true;
                 else
                     Radio_AnchorTop.IsChecked = true;

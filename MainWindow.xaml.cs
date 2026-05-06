@@ -36,8 +36,8 @@ namespace Desktop_Container
     class Win32
     {
         public const uint SHGFI_ICON = 0x100;
-        public const uint SHGFI_LARGEICON = 0x0;    // 'Large icon
-        public const uint SHGFI_SMALLICON = 0x1;    // 'Small icon
+        public const uint SHGFI_LARGEICON = 0x0;    // Large icon
+        public const uint SHGFI_SMALLICON = 0x1;    // Small icon
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         public static extern IntPtr SHGetFileInfo(string pszPath,
@@ -47,6 +47,12 @@ namespace Desktop_Container
                                     uint uFlags);
     }
 
+    enum LinkedContainerUpdateAction
+    {
+        Insert,
+        Delete,
+        Rename
+    }
 
     public partial class MainWindow : Window
     {
@@ -69,6 +75,7 @@ namespace Desktop_Container
         bool containerReduced = false;
         bool pinned = false;
         string linkedDir = "";
+        FileSystemWatcher watcher;
         Brush container_color = (SolidColorBrush)new BrushConverter().ConvertFrom("#4C202020");
         bool posAnchoredRight, posAnchoredBottom = false;
         int positionHori, positionVert;
@@ -82,7 +89,7 @@ namespace Desktop_Container
         { Height = new GridLength(1, GridUnitType.Star) };
 
         double CONTAINER_HEIGHT = 400;
-        public MainWindow(List<List<string>> save_datas = null, string timestampText = "")
+        public MainWindow(SaveDatas save_datas = null, string timestampText = "")
         {
             InitializeComponent();
 
@@ -93,25 +100,24 @@ namespace Desktop_Container
             if (save_datas != null) // CONTAINER SAUVEGARDE
             {
                 timestamp = int.Parse(timestampText);
-                var options = save_datas[0];
 
                 // Récupération du nom du container
-                Container_Title.Text = options[0];
-                MainContainer.Title = options[0];
+                Container_Title.Text = save_datas.Title;
+                MainContainer.Title = save_datas.Title;
 
                 // Récupération de l'état (réduit/ouvert) du container
-                containerReduced = options[1] == "True";
+                containerReduced = save_datas.Reduced;
 
                 // Récupération de la position de la barre de titre
-                bottom_titlebar = options[2] == "True";
+                bottom_titlebar = save_datas.BottomTitleBar;
 
                 // Récupération de la couleur d'arrière plan
-                container_color = (SolidColorBrush)new BrushConverter().ConvertFrom(options[3]);
+                container_color = (SolidColorBrush)new BrushConverter().ConvertFrom(save_datas.Color);
 
                 // Récupération des dimensions du container
-                List<string> sizeContainer = options[4].Split(";").ToList();
-                MainContainer.Width = int.Parse(sizeContainer[0]);
-                int savedContainerHeight = int.Parse(sizeContainer[1]);
+                List<int> sizeContainer = save_datas.Size;
+                MainContainer.Width = sizeContainer[0];
+                int savedContainerHeight = sizeContainer[1];
                 if (savedContainerHeight > 50)
                     CONTAINER_HEIGHT = savedContainerHeight;
                 else
@@ -119,9 +125,9 @@ namespace Desktop_Container
                 MainContainer.Height = CONTAINER_HEIGHT;
 
                 // Récupération des coordonnées du container
-                string[] posContainer = options[5].Split(",");
-                int posX = int.Parse(posContainer[0]);
-                int posY = int.Parse(posContainer[1]);
+                List<int> posContainer = save_datas.Position;
+                int posX = posContainer[0];
+                int posY = posContainer[1];
                 if (posX < 0)
                 {
                     posX = (int)SystemParameters.PrimaryScreenWidth + posX - (int)MainContainer.Width;
@@ -139,20 +145,19 @@ namespace Desktop_Container
                 MainContainer.Left = posX;
                 MainContainer.Top = posY;
 
-                var directories = save_datas[2];
-                if (directories.Count > 0)
+                string LinkedDirectory = save_datas.LinkedDirectory ?? "";
+                if (LinkedDirectory != "")
                 {
-                    string directory = directories[0];
-                    Link_Container(true, directory);
+                    Link_Container(true, LinkedDirectory, true);
                     
-                    if (Directory.Exists(directory))
+                    if (Directory.Exists(LinkedDirectory))
                     {
-                        AddItem(Directory.GetDirectories(directory));
-                        AddItem(Directory.GetFiles(directory));
+                        AddItem([.. Directory.GetDirectories(LinkedDirectory)]);
+                        AddItem([.. Directory.GetFiles(LinkedDirectory)]);
                     }
                 }
 
-                AddItem(save_datas[1].ToArray());
+                AddItem(save_datas.Files);
 
                 if (containerReduced)
                 {
@@ -188,7 +193,7 @@ namespace Desktop_Container
             }
         }
 
-        private void AddItem(string[] files)
+        private void AddItem(List<string> files)
         {
             foreach (string file in files)
             {
@@ -250,7 +255,7 @@ namespace Desktop_Container
                             (uint)Marshal.SizeOf(shinfo),
                             Win32.SHGFI_ICON |
                             Win32.SHGFI_ICON);
-                    var item_icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(shinfo.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                    var item_icon = Imaging.CreateBitmapSourceFromHIcon(shinfo.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
 
                     icone.Source = item_icon;
                     item.Children.Add(icone);
@@ -355,18 +360,31 @@ namespace Desktop_Container
 
         public static void OpenWithDefaultProgram(string path)
         {
-            using Process fileopener = new();
+            if (Path.GetExtension(path) == ".exe")
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = path,
+                    WorkingDirectory = Path.GetDirectoryName(path),
+                    UseShellExecute = true
+                };
 
-            fileopener.StartInfo.FileName = "explorer";
-            fileopener.StartInfo.Arguments = "\"" + path + "\"";
-            fileopener.Start();
+                Process.Start(startInfo);
+            } else
+            {
+                using Process fileopener = new();
+
+                fileopener.StartInfo.FileName = "explorer";
+                fileopener.StartInfo.Arguments = "\"" + path + "\"";
+                fileopener.Start();
+            }
         }
 
         private void MainContainer_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                List<string> files = [.. ((string[])e.Data.GetData(DataFormats.FileDrop))];
 
                 AddItem(files);
             }
@@ -375,23 +393,16 @@ namespace Desktop_Container
 
         public void Save_Container()
         {
-            if (Wrap_Shortcut.Children.Count > 0)
+            if (Wrap_Shortcut.Children.Count > 0 || linkedDir != "")
             {
-                List<List<string>> save_datas = new();
-                List<string> options = new();
-                List<string> items = new();
-                List<string> directories = new();
-
-                options.Add(Container_Title.Text);
-                options.Add(containerReduced.ToString());
-                options.Add(bottom_titlebar.ToString());
-                options.Add(container_color.ToString());
-
-                if (!containerReduced)
-                    CONTAINER_HEIGHT = MainContainer.Height;
-
-                int[] sizeContainer = { (int)MainContainer.Width, (int)CONTAINER_HEIGHT };
-                options.Add(sizeContainer[0].ToString() + ";" + sizeContainer[1].ToString());
+                SaveDatas saveDatas = new()
+                {
+                    Title = Container_Title.Text,
+                    Reduced = containerReduced,
+                    BottomTitleBar = bottom_titlebar,
+                    Color = container_color.ToString(),
+                    Size = [(int)MainContainer.Width, (int)(containerReduced ? CONTAINER_HEIGHT : MainContainer.Height)],
+                };
 
                 if (!posAnchoredRight)
                     positionHori = (int)MainContainer.PointToScreen(new Point(0, 0)).X;
@@ -401,30 +412,24 @@ namespace Desktop_Container
                     positionVert = (int)MainContainer.PointToScreen(new Point(0, 0)).Y;
                 else
                     positionVert = -(int)(SystemParameters.PrimaryScreenHeight - MainContainer.PointToScreen(new Point(0, MainContainer.Height)).Y);
-                
-                string posContainer = positionHori + "," + positionVert;
-                options.Add(posContainer);
 
-                if(linkedDir == "")
+                saveDatas.Position = [positionHori, positionVert];
+
+                if (linkedDir == "")
                 {
                     var elems = Wrap_Shortcut.Children;
                     foreach (var item in elems)
                     {
                         Border border = item as Border;
-                        items.Add(border.Tag.ToString());
+                        if (border.Tag.ToString() != "")
+                            saveDatas.Files.Add(border.Tag.ToString());
                     }
                 } else
                 {
-                    directories.Add(linkedDir);
+                    saveDatas.LinkedDirectory = linkedDir;
                 }
 
-                save_datas.Add(options);
-                save_datas.Add(items);
-                save_datas.Add(directories);
-
-                var json = JsonSerializer.Serialize(save_datas);
-
-                File.WriteAllText(saveDirectory + @"\container" + timestamp + ".json", json);
+                File.WriteAllText(saveDirectory + @"\container" + timestamp + ".json", JsonSerializer.Serialize(saveDatas));
 
                 Btn_Settings.IsEnabled = true;
             }
@@ -436,12 +441,13 @@ namespace Desktop_Container
                 
         }
 
-        private void Item_Delete(Border item)
+        private void Item_Delete(Border item, bool keepLink = false)
         {
             Wrap_Shortcut.Children.Remove(item);
             if (Wrap_Shortcut.Children.Count == 0)
                 Empty_Container_Text.Visibility = Visibility.Visible;
-            Link_Container(false);
+            if (!keepLink)
+                Link_Container(false);
         }
         private void Item_MoveUp(Border item)
         {
@@ -461,11 +467,12 @@ namespace Desktop_Container
                 Wrap_Shortcut.Children.Insert(index + 1, item);
             }
         }
-        private void Delete_All()
+        private void Delete_All(bool keepLink = false)
         {
             Wrap_Shortcut.Children.Clear();
             Empty_Container_Text.Visibility = Visibility.Visible;
-            Link_Container(false);
+            if (!keepLink)
+                Link_Container(false);
         }
 
         bool optionsOpened = false;
@@ -764,6 +771,12 @@ namespace Desktop_Container
             Set_Container_Background(button);
         }
 
+        private void Grid_Container_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (!containerReduced && MainContainer.Height > 20)
+                CONTAINER_HEIGHT = MainContainer.Height;
+        }
+
         private void ContextMenu_CloseApp_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
@@ -781,8 +794,8 @@ namespace Desktop_Container
                 if (Directory.Exists(path))
                 {
                     Link_Container(true, path);
-                    AddItem(Directory.GetDirectories(path));
-                    AddItem(Directory.GetFiles(path));
+                    AddItem([.. Directory.GetDirectories(path)]);
+                    AddItem([.. Directory.GetFiles(path)]);
 
                     string name = Path.GetFileName(path);
                     Container_Title.Text = Path.GetFileName(name);
@@ -791,19 +804,80 @@ namespace Desktop_Container
             }
         }
 
-        private void Link_Container(bool link, string path = "")
+        private void Link_Container(bool link, string path = "", bool init = false)
         {
             if (link)
             {
                 linkedDir = path;
                 Icon_LinkedContainer.Visibility = Visibility.Visible;
                 Icon_LinkedContainer.ToolTip = "The contents of this Container is linked to a folder (" + path + ")";
+
+                watcher = new(path)
+                {
+                    EnableRaisingEvents = true
+                };
+                watcher.Created += Watcher_Created;
+                watcher.Deleted += Watcher_Deleted;
+                watcher.Renamed += Watcher_Renamed;
             } else
             {
+                if (watcher != null)
+                {
+                    watcher.Created -= Watcher_Created;
+                    watcher.Deleted -= Watcher_Deleted;
+                    watcher.Renamed -= Watcher_Renamed;
+                    watcher.Dispose();
+                }
                 linkedDir = "";
                 Icon_LinkedContainer.Visibility = Visibility.Collapsed;
             }
-            Save_Container();
+            if (!init)
+                Save_Container();
+        }
+
+        private void Watcher_Created(object sender, FileSystemEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Delete_All(true);
+                AddItem([.. Directory.GetDirectories(linkedDir)]);
+                AddItem([.. Directory.GetFiles(linkedDir)]);
+            });
+        }
+        private void Watcher_Deleted(object sender, FileSystemEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                foreach (var border in Wrap_Shortcut.Children.OfType<Border>().ToList())
+                {
+                    if (border.Tag?.ToString() == e.FullPath)
+                    {
+                        Item_Delete(border, true);
+                    }
+                }
+            });
+        }
+        private void Watcher_Renamed(object sender, RenamedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                foreach (var border in Wrap_Shortcut.Children.OfType<Border>().ToList())
+                {
+                    if (border.Tag?.ToString() == e.OldFullPath)
+                    {
+                        border.Tag = e.FullPath;
+                        TextBlock tb = ((border.Child as Grid)?
+                            .Children
+                            .OfType<TextBlock>()
+                            .FirstOrDefault());
+
+                        if (tb != null)
+                        {
+                            tb.Text = e.Name;
+                        }
+                    }
+                }
+            });
         }
     }
 }

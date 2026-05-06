@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         Title="Container" WindowStyle="None" ShowInTaskbar="False" Drop="MainContainer_Drop" AllowDrop="True" ResizeMode="CanResizeWithGrip" MouseEnter="MainContainer_MouseEnter" MouseLeave="MainContainer_MouseLeave" MouseUp="MainContainer_MouseUp" Width="400" Height="400" Icon="/images/icone.png" UseLayoutRounding="False" Background="Transparent" AllowsTransparency="True" Loaded="MainContainer_Loaded">
     <Border x:Name="Container_Border" CornerRadius="0,0,10,10" Background="#4C202020">
-        <Grid x:Name="Grid_Container">
+        <Grid x:Name="Grid_Container" SizeChanged="Grid_Container_SizeChanged">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>

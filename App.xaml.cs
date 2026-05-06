@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Windows;
 
@@ -40,14 +39,21 @@ namespace Desktop_Container
             {
                 StreamReader r = new(container);
                 string json = r.ReadToEnd();
+                r.Close();
                 if(json != "")
                 {
-                    List<List<string>> save_datas = JsonSerializer.Deserialize<List<List<string>>>(json) ?? [];
-                    r.Close();
+                    SaveDatas saveDatas;
+                    if (json.StartsWith("[["))
+                    {
+                        saveDatas = MigrateOldSaveFormat(JsonSerializer.Deserialize<List<List<string>>>(json) ?? [], container);
+                    } else
+                    {
+                        saveDatas = JsonSerializer.Deserialize<SaveDatas>(json) ?? new SaveDatas();
+                    }
 
                     string timestampText = container.Split("\\")[^1].Split("container")[1].Split(".")[0];
 
-                    MainWindow newContainer = new(save_datas, timestampText);
+                    MainWindow newContainer = new(saveDatas, timestampText);
                     newContainer.Show();
                 }
             }
@@ -58,6 +64,29 @@ namespace Desktop_Container
                 emptyContainer.Show();
             }
                 
+        }
+
+        private static SaveDatas MigrateOldSaveFormat(List<List<string>> save_datas, string filepath)
+        {
+            SaveDatas newSaveDatas = new()
+            {
+                Title = save_datas[0][0],
+                Reduced = save_datas[0][1] == "True",
+                BottomTitleBar = save_datas[0][2] == "True",
+                Color = save_datas[0][3],
+                Size = [int.Parse(save_datas[0][4].Split(";")[0]), int.Parse(save_datas[0][4].Split(";")[1])],
+                Position = [int.Parse(save_datas[0][5].Split(",")[0]), int.Parse(save_datas[0][5].Split(",")[1])],
+                Files = save_datas[1],
+                LinkedDirectory = save_datas[2].Count > 0 ? save_datas[2][0] : null
+            };
+
+
+            string oldSavePath = Path.GetDirectoryName(filepath);
+            string oldSaveFilename = Path.GetFileName(filepath);
+            File.Copy(filepath, oldSavePath + "\\" + oldSaveFilename + ".migratebackup");
+            File.WriteAllText(filepath, JsonSerializer.Serialize(newSaveDatas));
+
+            return newSaveDatas;
         }
 
         void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
